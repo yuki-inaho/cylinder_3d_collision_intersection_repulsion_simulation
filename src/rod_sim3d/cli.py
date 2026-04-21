@@ -281,6 +281,30 @@ def build_parser() -> argparse.ArgumentParser:
             "[render].opacity in the DB's embedded config"
         ),
     )
+    replay_cmd.add_argument(
+        "--export-gif",
+        type=str,
+        default=None,
+        help=(
+            "write the replay as an animated GIF (off-screen rendering, no viewer "
+            "window). Only valid for --backend pyvista"
+        ),
+    )
+    replay_cmd.add_argument(
+        "--export-fps",
+        type=int,
+        default=20,
+        help="GIF frame rate (default: 20)",
+    )
+    replay_cmd.add_argument(
+        "--export-max-frames",
+        type=int,
+        default=300,
+        help=(
+            "cap on GIF length; frames are sub-sampled as "
+            "ceil(total_frames / this) (default: 300 → ~15s at 20 fps)"
+        ),
+    )
 
     return parser
 
@@ -529,6 +553,9 @@ def replay_command(args: argparse.Namespace) -> None:
             show_overlaps=not args.hide_overlaps,
             opacity=float(opacity),
             overlap_opacity=float(cfg.render.overlap_opacity),
+            export_gif=args.export_gif or "",
+            export_fps=int(args.export_fps),
+            export_max_frames=int(args.export_max_frames),
         )
         replay(conn, cfg, options)
     finally:

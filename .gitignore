@@ -63,6 +63,8 @@ outputs/
 *.avi
 *.mov
 *.gif
+# ...but keep the demo GIFs embedded in the README.
+!assets/*.gif
 
 # --- Editors / IDE --------------------------------------------------------
 .idea/

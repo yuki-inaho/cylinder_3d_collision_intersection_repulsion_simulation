@@ -16,6 +16,7 @@ from __future__ import annotations
 import sqlite3
 from collections.abc import Iterable
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any
 
 import numpy as np
@@ -54,6 +55,13 @@ class ReplayOptions:
 
     ``overlap_opacity`` controls the alpha of the magenta intersection-polytope
     mesh. Higher values keep the highlight solid even when ``opacity`` is low.
+
+    ``export_gif`` / ``export_fps`` / ``export_max_frames`` switch the pyvista
+    backend from interactive playback into off-screen GIF capture. When
+    ``export_gif`` is non-empty the Plotter is created with ``off_screen=True``,
+    the file is opened via ``plotter.open_gif``, and one frame is written per
+    rendered step. Frame sub-sampling uses ``ceil(total / export_max_frames)``
+    so the resulting file stays modest in size.
     """
 
     backend: str = "pyvista"
@@ -63,6 +71,9 @@ class ReplayOptions:
     show_overlaps: bool = True
     opacity: float = 1.0
     overlap_opacity: float = 0.9
+    export_gif: str = ""
+    export_fps: int = 20
+    export_max_frames: int = 300
 
 
 def replay(conn: sqlite3.Connection, config: Config, options: ReplayOptions) -> None:
@@ -95,6 +106,10 @@ def _replay_pyvista(
     options: ReplayOptions,
 ) -> None:
     import pyvista as pv  # noqa: PLC0415 — deferred to keep import-time cheap
+
+    if options.export_gif:
+        _export_pyvista_gif(pv, conn, config, frame_ids, options)
+        return
 
     first = load_frame(conn, frame_ids[0])
     endpoints = _endpoints(first.positions, first.directions, config.system.rod_length)
@@ -176,6 +191,85 @@ def _replay_pyvista(
 
     if not pyvista_window_is_gone(plotter):
         plotter.close()
+
+
+def _export_pyvista_gif(
+    pv: Any,
+    conn: sqlite3.Connection,
+    config: Config,
+    frame_ids: list[int],
+    options: ReplayOptions,
+) -> None:
+    """Render the replay off-screen and emit a GIF at ``options.export_gif``.
+
+    The Plotter is created with ``off_screen=True``. Frames are sub-sampled so
+    the resulting file has at most ``options.export_max_frames`` frames, which
+    keeps file sizes and decode cost reasonable for README embeds.
+    """
+
+    from math import ceil  # noqa: PLC0415
+
+    from tqdm import tqdm  # noqa: PLC0415
+
+    Path(options.export_gif).parent.mkdir(parents=True, exist_ok=True)
+
+    stride = max(1, ceil(len(frame_ids) / max(1, options.export_max_frames)))
+    sampled_frames = frame_ids[::stride]
+
+    first = load_frame(conn, sampled_frames[0])
+    endpoints = _endpoints(first.positions, first.directions, config.system.rod_length)
+    rod_radius = config.system.rod_radius
+    tube_mesh = _build_tube_mesh(pv, endpoints, rod_radius)
+
+    plotter: Any = pv.Plotter(off_screen=True, window_size=list(options.window_size))
+    _maybe_enable_depth_peeling(plotter, options.opacity)
+    plotter.add_mesh(
+        tube_mesh,
+        scalars="rod_id",
+        cmap="turbo",
+        show_scalar_bar=False,
+        opacity=options.opacity,
+    )
+    overlap_actor: Any = None
+    if options.show_overlaps:
+        overlap_actor = _upsert_overlap_mesh(
+            pv, plotter, None, first, config, options.overlap_opacity
+        )
+    _decorate_scene(pv, plotter, config, options)
+    plotter.add_text(
+        _status_text(first, len(frame_ids), loop=False),
+        position="upper_left",
+        font_size=10,
+        name="status",
+    )
+
+    plotter.open_gif(options.export_gif, fps=options.export_fps)
+    plotter.show(auto_close=False)
+    plotter.write_frame()
+
+    progress = tqdm(
+        sampled_frames[1:],
+        desc=f"gif→{Path(options.export_gif).name}",
+        unit="frame",
+        dynamic_ncols=True,
+    )
+    for frame_id in progress:
+        snap = load_frame(conn, frame_id)
+        endpoints = _endpoints(snap.positions, snap.directions, config.system.rod_length)
+        _refresh_tube_mesh(tube_mesh, endpoints, rod_radius)
+        if options.show_overlaps:
+            overlap_actor = _upsert_overlap_mesh(
+                pv, plotter, overlap_actor, snap, config, options.overlap_opacity
+            )
+        plotter.add_text(
+            _status_text(snap, len(frame_ids), loop=False),
+            position="upper_left",
+            font_size=10,
+            name="status",
+        )
+        plotter.write_frame()
+
+    plotter.close()
 
 
 def _replay_matplotlib(

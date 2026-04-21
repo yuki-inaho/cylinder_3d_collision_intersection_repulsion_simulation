@@ -9,7 +9,12 @@
 | `SOFT_REPULSION` | 連続ポテンシャルによるソフト斥力 | — (プリセットなし、`[pair_interaction] model = "soft_repulsion"` で有効化) |
 | `HARD_CONTACT` | 非貫通制約 + 衝突インパルス (剛体) | `configs/cylinders_hard.toml` |
 
-> `SOFT_REPULSION` の `strength` を大きくしても剛体にはならない。剛体接触は制約+インパルスの枠組み (`HARD_CONTACT`) で扱う。詳細は [`docs/model.pdf`](docs/model.pdf)。
+| 透過モード (NONE) | 剛体モード (HARD_CONTACT) |
+|:---:|:---:|
+| ![pass-through](assets/cylinders_passthrough.gif) | ![hard-contact](assets/cylinders_hard.gif) |
+| 円筒はすり抜け、交差領域をマゼンタ半透明で可視化 | 非貫通制約 + 衝突インパルスで弾む |
+
+> `SOFT_REPULSION` の `strength` を大きくしても剛体にはならない。剛体接触は制約+インパルスの枠組み (`HARD_CONTACT`) で扱う。詳細は [`docs/理論仕様書.pdf`](docs/理論仕様書.pdf)。
 
 ---
 
@@ -150,10 +155,11 @@ opacity = 0.55               # 円筒透過度 (NONE モードで役立つ)
 
 ```
 rod_3d_simulation/
+├── assets/            # README 用 GIF (透過 / 剛体モード)
 ├── configs/           # TOML 設定ファイル
-├── docs/model.md      # 物理モデル詳細 (数式導出)
+├── docs/              # 物理モデルの理論仕様 PDF
 ├── src/rod_sim3d/     # ソース
-├── tests/             # pytestテストコード
+├── tests/             # pytest テストコード
 ├── justfile           # タスクランナー
 ├── pyproject.toml     # uv 管理、ruff/ty/radon 設定
 └── README.md
