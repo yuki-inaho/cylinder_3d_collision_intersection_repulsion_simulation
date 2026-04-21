@@ -36,9 +36,8 @@ from rod_sim3d.storage import FrameSnapshot, iter_frame_ids, load_frame
 # intersection convex polytope for visual highlight. 16 is a visual/speed sweet
 # spot — volumes land within ~3% of the slice-integral truth.
 _OVERLAP_MESH_N_SIDES: int = 16
-# Color + opacity for the highlighted intersection region.
+# Fixed highlight color; alpha comes from ReplayOptions.overlap_opacity.
 _OVERLAP_COLOR: str = "magenta"
-_OVERLAP_OPACITY: float = 0.45
 
 
 @dataclass(slots=True, frozen=True)
@@ -52,6 +51,9 @@ class ReplayOptions:
       - ``< 0.3`` : nearly invisible, overlaps dominate
     Depth peeling is enabled automatically when ``opacity < 1.0`` so stacked
     translucent cylinders render in the right order.
+
+    ``overlap_opacity`` controls the alpha of the magenta intersection-polytope
+    mesh. Higher values keep the highlight solid even when ``opacity`` is low.
     """
 
     backend: str = "pyvista"
@@ -60,6 +62,7 @@ class ReplayOptions:
     show_box: bool = True
     show_overlaps: bool = True
     opacity: float = 1.0
+    overlap_opacity: float = 0.9
 
 
 def replay(conn: sqlite3.Connection, config: Config, options: ReplayOptions) -> None:
@@ -109,7 +112,9 @@ def _replay_pyvista(
     )
     overlap_actor: Any = None
     if options.show_overlaps:
-        overlap_actor = _upsert_overlap_mesh(pv, plotter, None, first, config)
+        overlap_actor = _upsert_overlap_mesh(
+            pv, plotter, None, first, config, options.overlap_opacity
+        )
 
     _decorate_scene(pv, plotter, config, options)
     plotter.add_text(
@@ -152,7 +157,9 @@ def _replay_pyvista(
         _refresh_tube_mesh(tube_mesh, endpoints, rod_radius)
 
         if options.show_overlaps:
-            overlap_actor = _upsert_overlap_mesh(pv, plotter, overlap_actor, snap, config)
+            overlap_actor = _upsert_overlap_mesh(
+                pv, plotter, overlap_actor, snap, config, options.overlap_opacity
+            )
 
         plotter.add_text(
             _status_text(snap, len(frame_ids), loop=controls.loop),
@@ -294,14 +301,15 @@ def _upsert_overlap_mesh(
     existing_actor: Any,
     snap: FrameSnapshot,
     config: Config,
+    opacity: float,
 ) -> Any:
-    """Draw the actual convex intersection polytope of every overlapping pair.
+    """Draw the convex intersection polytope of every overlapping capsule pair.
 
     Each ``C_i ∩ C_j`` is approximated by an N-gon-prism intersection (see
     :func:`rod_sim3d.cylinder_polytope.intersection_polytope`) and the resulting
-    triangulated convex polytope is merged into a single PolyData. Rendering uses
-    a single flat magenta colour with low opacity so that visual weight stays
-    proportional to how much the rods interpenetrate.
+    triangulated convex polytope is merged into a single PolyData. Rendered in
+    a single flat magenta colour with ``opacity`` coming from the caller so the
+    highlight alpha is tunable from the config / CLI.
     """
 
     if existing_actor is not None:
@@ -321,7 +329,7 @@ def _upsert_overlap_mesh(
     return plotter.add_mesh(
         mesh,
         color=_OVERLAP_COLOR,
-        opacity=_OVERLAP_OPACITY,
+        opacity=opacity,
         show_scalar_bar=False,
         specular=0.2,
         smooth_shading=True,

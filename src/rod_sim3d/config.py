@@ -158,6 +158,9 @@ class RenderConfig:
     below 1 (e.g. 0.5) to see through capsules — particularly useful for the
     pass-through (``InteractionModel.NONE``) mode so overlap regions are
     visible through the outer surfaces.
+
+    ``overlap_opacity`` controls the alpha of the magenta intersection-polytope
+    mesh drawn in the NONE replay. Higher = more solid highlight.
     """
 
     backend: str = "pyvista"
@@ -169,6 +172,7 @@ class RenderConfig:
     camera_position: str = "iso"
     matplotlib_pause: float = 0.001
     opacity: float = 1.0
+    overlap_opacity: float = 0.9
 
 
 @dataclass(slots=True)

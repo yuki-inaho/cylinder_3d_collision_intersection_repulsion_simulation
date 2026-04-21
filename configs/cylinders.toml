@@ -69,7 +69,10 @@ camera_position = "iso"
 matplotlib_pause = 0.001
 # Translucent capsules so overlap regions are visible through the outer
 # surfaces. Set to 1.0 for opaque rods, or override per-run with --opacity.
-opacity = 0.55
+opacity = 0.35
+# Alpha of the magenta intersection-polytope highlight (0 = invisible,
+# 1 = fully opaque). 0.9 gives a solid, well-defined interpenetration blob.
+overlap_opacity = 0.95
 
 [output]
 trajectory_npz = ""

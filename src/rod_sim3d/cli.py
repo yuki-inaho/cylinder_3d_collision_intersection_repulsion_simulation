@@ -528,6 +528,7 @@ def replay_command(args: argparse.Namespace) -> None:
             show_box=cfg.render.show_box,
             show_overlaps=not args.hide_overlaps,
             opacity=float(opacity),
+            overlap_opacity=float(cfg.render.overlap_opacity),
         )
         replay(conn, cfg, options)
     finally:
