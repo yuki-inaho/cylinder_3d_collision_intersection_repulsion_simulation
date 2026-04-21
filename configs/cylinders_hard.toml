@@ -1,0 +1,80 @@
+# ============================================================================
+# Hard-contact cylinder mode (InteractionModel.HARD_CONTACT)
+# ============================================================================
+# Rigid-body capsules that bounce off each other and off the box walls.
+# Contacts are resolved impulsively — at each step, penetrating pairs and
+# rod-wall contacts receive a normal impulse that enforces the restitution
+# relation v_n^+ = -e v_n^-.
+#
+# This is distinct from the SOFT_REPULSION model, which pushes rods apart
+# with a smooth continuous force. Rigid-body contact is NOT "a very stiff
+# spring": it is a constraint + impulse formulation.
+#
+# Run:
+#   uv run rod-sim3d compute --config configs/cylinders_hard.toml --db runs/hard.db
+#   uv run rod-sim3d replay  --db runs/hard.db --backend pyvista
+# or:
+#   just hard
+
+[system]
+n_rods = 15
+rod_length = 1.8
+rod_radius = 0.22
+mass = 1.0
+box = [5.0, 5.0, 5.0]
+quadrature_points = 4
+
+[pair_interaction]
+# The authoritative interaction model. Overrides any [pair_potential] / [wall_potential]
+# settings — those are left at defaults for schema compatibility and ignored here.
+model = "hard_contact"
+contact_radius = 0.22         # capsule collision radius (defaults to rod_radius if omitted)
+restitution = 0.85            # rod-rod restitution coefficient, 0 = perfectly inelastic, 1 = elastic
+wall_restitution = 0.9        # rod-wall restitution coefficient
+
+[pair_potential]
+# Unused in hard_contact mode; kept to satisfy the schema.
+strength = 0.0
+
+[wall_potential]
+# Unused in hard_contact mode; walls are handled by the impulse solver.
+strength = 0.0
+
+[dynamics]
+# Small dt is important: the maximum per-step penetration before impulse
+# response is |v| * dt. With initial_force_scale = 20 and kick_duration = 0.1
+# the initial speeds are ~2 m/s, so dt = 0.0025 gives ~5 mm penetration budget
+# per contact (well within contact_radius = 0.22).
+dt = 0.0025
+# Low damping keeps the scene lively; raise these to ~0.05 if energy runaway is
+# a concern, or to 0.0 for near-perfect conservation.
+linear_damping = 0.005
+angular_damping = 0.005
+max_linear_speed = 50.0
+max_angular_speed = 80.0
+
+[initial]
+seed = 21
+clearance = 0.3
+min_segment_distance = 0.5    # keep initial capsules well-separated
+max_sampling_attempts = 20000
+# v(0)     = initial_force_scale  * kick_duration / mass
+# omega(0) = initial_torque_scale * kick_duration / inertia
+# Defaults below give v0 ~ 2 m/s and omega0 ~ 6 rad/s — visibly energetic.
+initial_force_scale = 20.0
+initial_torque_scale = 5.0
+kick_duration = 0.1
+
+[render]
+backend = "pyvista"
+frames = 1500
+substeps_per_frame = 3
+line_width = 6.0
+window_size = [1100, 850]
+show_box = true
+camera_position = "iso"
+matplotlib_pause = 0.001
+
+[output]
+trajectory_npz = ""
+initial_kick_json = "runs/cylinders_hard_initial_kick.json"

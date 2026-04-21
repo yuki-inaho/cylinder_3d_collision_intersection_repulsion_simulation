@@ -1,0 +1,96 @@
+# --- Python ---------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg
+*.egg-info/
+.eggs/
+build/
+dist/
+develop-eggs/
+downloads/
+parts/
+sdist/
+wheels/
+MANIFEST
+
+# --- Virtual environments --------------------------------------------------
+.venv/
+venv/
+env/
+ENV/
+.python-version
+
+# --- Package / build artifacts --------------------------------------------
+.installed.cfg
+pip-log.txt
+pip-delete-this-directory.txt
+.tox/
+
+# --- Test / quality caches ------------------------------------------------
+.pytest_cache/
+.ruff_cache/
+.ty_cache/
+.mypy_cache/
+.pyre/
+.pytype/
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+*.cover
+.hypothesis/
+.nox/
+
+# --- Simulation artifacts -------------------------------------------------
+# Long-running output: trajectories, overlap DBs, initial-kick dumps,
+# replay recordings. Keep configs/ tracked but not the byte-heavy outputs.
+runs/
+outputs/
+*.npz
+*.npy
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+*.pkl
+*.joblib
+*.parquet
+
+# --- Rendering captures ---------------------------------------------------
+*.mp4
+*.avi
+*.mov
+*.gif
+
+# --- Editors / IDE --------------------------------------------------------
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.project
+.pydevproject
+.settings/
+
+# --- macOS / Windows cruft ------------------------------------------------
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# --- Temporary user scratch area -----------------------------------------
+# ``temp/`` is where the source documents and zipped inputs land during the
+# compute/replay workflow; it is regenerable on demand and should stay out of
+# version control.
+temp/
+
+# --- Numba cache ----------------------------------------------------------
+__pycache__/numba_cache/
+*.nbi
+*.nbc
+
+# --- Profiling output -----------------------------------------------------
+*.prof
+*.lprof
+*.pstats

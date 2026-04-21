@@ -1,0 +1,76 @@
+# ============================================================================
+# Pass-through cylinder mode (InteractionModel.NONE)
+# ============================================================================
+# Finite-radius cylinders bounce off the walls but PASS THROUGH each other.
+# The simulation records the frame-by-frame intersection volume between every
+# overlapping pair, and the replay draws the convex intersection polytope in
+# translucent magenta.
+#
+# Rigid-body cylinder-cylinder collision is a separate model
+# (InteractionModel.HARD_CONTACT); see configs/cylinders_hard.toml.
+#
+# Run:
+#   uv run rod-sim3d compute --config configs/cylinders.toml --db runs/cylinders.db
+#   uv run rod-sim3d replay  --db runs/cylinders.db --backend pyvista
+# or simply:
+#   just demo
+
+[system]
+n_rods = 10
+rod_length = 1.8
+rod_radius = 0.22
+mass = 1.0
+box = [5.0, 5.0, 5.0]
+quadrature_points = 32
+
+[pair_potential]
+# strength = 0.0 disables cylinder-cylinder forces and torques entirely.
+# The remaining fields are unused in this mode but kept for schema consistency.
+strength = 0.0
+length_scale = 0.30
+cutoff = 0.85
+exponent = 8.0
+softening = 0.035
+
+[wall_potential]
+# Walls bounce cylinders back. The effective wall distance is shifted inward by
+# rod_radius so the finite cylinder surface (not its center line) interacts with
+# the box walls — see src/rod_sim3d/forces.py:accumulate_wall_forces.
+strength = 0.08
+length_scale = 0.35
+cutoff = 0.75
+exponent = 8.0
+softening = 0.025
+
+[dynamics]
+dt = 0.004
+linear_damping = 0.04
+angular_damping = 0.04
+max_linear_speed = 20.0
+max_angular_speed = 30.0
+
+[initial]
+seed = 13
+clearance = 0.25
+min_segment_distance = 0.0
+max_sampling_attempts = 20000
+initial_force_scale = 4.0
+initial_torque_scale = 1.2
+kick_duration = 0.08
+
+[render]
+backend = "pyvista"
+frames = 1500
+substeps_per_frame = 3
+line_width = 6.0
+window_size = [1100, 850]
+show_box = true
+camera_position = "iso"
+matplotlib_pause = 0.001
+# Translucent capsules so overlap regions are visible through the outer
+# surfaces. Set to 1.0 for opaque rods, or override per-run with --opacity.
+opacity = 0.55
+
+[output]
+trajectory_npz = ""
+initial_kick_json = "runs/cylinders_initial_kick.json"
