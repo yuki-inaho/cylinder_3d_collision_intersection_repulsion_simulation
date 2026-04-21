@@ -138,7 +138,7 @@ kick_duration = 0.1          # T_kick
 
 [render]
 backend = "pyvista"
-opacity = 0.55               # カプセル透過度 (NONE モードで役立つ)
+opacity = 0.55               # 円筒透過度 (NONE モードで役立つ)
 ```
 
 `[pair_interaction]` を書かない場合は `pair_potential.strength` から自動推論:
