@@ -9,7 +9,7 @@
 | `SOFT_REPULSION` | 連続ポテンシャルによるソフト斥力 | — (プリセットなし、`[pair_interaction] model = "soft_repulsion"` で有効化) |
 | `HARD_CONTACT` | 非貫通制約 + 衝突インパルス (剛体) | `configs/cylinders_hard.toml` |
 
-> `SOFT_REPULSION` の `strength` を大きくしても剛体にはならない。剛体接触は制約+インパルスの枠組み (`HARD_CONTACT`) で扱う。詳細は [`docs/model.md`](docs/model.md)。
+> `SOFT_REPULSION` の `strength` を大きくしても剛体にはならない。剛体接触は制約+インパルスの枠組み (`HARD_CONTACT`) で扱う。詳細は [`docs/model.pdf`](docs/model.pdf)。
 
 ---
 
@@ -153,7 +153,7 @@ rod_3d_simulation/
 ├── configs/           # TOML 設定ファイル
 ├── docs/model.md      # 物理モデル詳細 (数式導出)
 ├── src/rod_sim3d/     # ソース
-├── tests/             # pytest 回帰テスト (92件)
+├── tests/             # pytestテストコード
 ├── justfile           # タスクランナー
 ├── pyproject.toml     # uv 管理、ruff/ty/radon 設定
 └── README.md
