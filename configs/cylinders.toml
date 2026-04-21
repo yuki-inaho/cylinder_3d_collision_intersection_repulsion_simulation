@@ -54,7 +54,7 @@ seed = 13
 clearance = 0.25
 min_segment_distance = 0.0
 max_sampling_attempts = 20000
-initial_force_scale = 4.0
+initial_force_scale = 3.0
 initial_torque_scale = 1.2
 kick_duration = 0.08
 
