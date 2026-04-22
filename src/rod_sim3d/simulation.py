@@ -90,63 +90,74 @@ class Simulation:
     def compute_forces(self) -> ForceTorque:
         """Return pair + wall forces/torques according to the interaction model.
 
-        HARD_CONTACT returns zero here; its physics lives in the post-drift
-        impulsive solver. NONE also returns zero (pair) plus the soft wall
-        kernel only if ``wall.strength > 0``. SOFT_REPULSION delegates to the
-        full potential-based kernel.
+        - SOFT_REPULSION: full potential-based pair + wall forces.
+        - NONE with soft walls: pair is zeroed, soft wall potential is applied.
+        - NONE with impulsive walls (``wall_impulse=True``): both pair and wall
+          forces are zero here; walls get resolved as impulses post-drift.
+        - HARD_CONTACT: both pair and wall forces are zero here; everything
+          happens in the impulse solver.
         """
 
         model = self.config.pair_interaction.model
-        if model is InteractionModel.SOFT_REPULSION:
-            return compute_total_force_torque(
-                self.state.positions,
-                self.state.directions,
-                self.quadrature_nodes,
-                self.quadrature_weights,
-                self._box_array(),
-                self.config.pair,
-                self.config.wall,
-                rod_radius=self.config.system.rod_radius,
-            )
-        if model is InteractionModel.NONE:
-            # Only the soft wall potential (if any) emits forces.
-            zero_pair = type(self.config.pair)(strength=0.0)
-            return compute_total_force_torque(
-                self.state.positions,
-                self.state.directions,
-                self.quadrature_nodes,
-                self.quadrature_weights,
-                self._box_array(),
-                zero_pair,
-                self.config.wall,
-                rod_radius=self.config.system.rod_radius,
-            )
-        # HARD_CONTACT: skip force-based pair and wall kernels entirely.
-        return zero_force_torque(self.state.n_rods)
+        wall_impulse = self.config.pair_interaction.wall_impulse
+        if model is InteractionModel.HARD_CONTACT:
+            return zero_force_torque(self.state.n_rods)
+
+        zero_wall = type(self.config.wall)(strength=0.0) if wall_impulse else self.config.wall
+        pair_cfg = (
+            self.config.pair
+            if model is InteractionModel.SOFT_REPULSION
+            else type(self.config.pair)(strength=0.0)
+        )
+        return compute_total_force_torque(
+            self.state.positions,
+            self.state.directions,
+            self.quadrature_nodes,
+            self.quadrature_weights,
+            self._box_array(),
+            pair_cfg,
+            zero_wall,
+            rod_radius=self.config.system.rod_radius,
+        )
 
     def step(self, n_steps: int = 1) -> None:
         params = self._integrator_params()
         model = self.config.pair_interaction.model
+        wall_impulse = self.config.pair_interaction.wall_impulse
+        needs_hard_contacts = model is InteractionModel.HARD_CONTACT
+        needs_only_walls = (not needs_hard_contacts) and wall_impulse
         for _ in range(n_steps):
             integrate_one_step(self.state, self.compute_forces(), params)
-            if model is InteractionModel.HARD_CONTACT:
+            if needs_hard_contacts:
                 self._resolve_hard_contacts()
+            elif needs_only_walls:
+                self._resolve_wall_contacts_only()
             self.step_index += 1
 
     def _resolve_hard_contacts(self) -> None:
         """Apply impulse-based wall and pair contacts in place on ``self.state``."""
 
+        params = self._contact_params()
+        resolve_wall_contacts(self.state, self._box_array(), self.config.system.rod_length, params)
+        resolve_pair_contacts(self.state, self.config.system.rod_length, params)
+        self.state.enforce_constraints()
+
+    def _resolve_wall_contacts_only(self) -> None:
+        """Apply impulsive wall collisions only (pair interactions unchanged)."""
+
+        params = self._contact_params()
+        resolve_wall_contacts(self.state, self._box_array(), self.config.system.rod_length, params)
+        self.state.enforce_constraints()
+
+    def _contact_params(self) -> ContactParams:
         derived = self.config.resolve_interaction()
-        params = ContactParams(
+        return ContactParams(
             mass=self.config.system.mass,
             inertia=self.inertia,
             contact_radius=derived.contact_radius,
             restitution=derived.restitution,
             wall_restitution=derived.wall_restitution,
         )
-        resolve_wall_contacts(self.state, self._box_array(), self.config.system.rod_length, params)
-        resolve_pair_contacts(self.state, self.config.system.rod_length, params)
-        self.state.enforce_constraints()
 
     def energy(self) -> EnergyBreakdown:
         return EnergyBreakdown(

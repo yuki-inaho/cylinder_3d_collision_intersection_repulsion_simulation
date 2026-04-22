@@ -169,8 +169,10 @@ def test_compute_cli_records_overlaps_in_db(tmp_path: Path) -> None:
 
 
 def test_passthrough_config_loads_cleanly() -> None:
-    """The shipped ``configs/cylinders.toml`` must load, validate, and be
-    recognizably a pass-through config (strength=0 for pairs)."""
+    """The shipped ``configs/cylinders.toml`` must load, validate, and be a
+    pass-through config: no rod-rod interaction, and wall bounces either via
+    soft potential (``wall.strength > 0``) or impulsively
+    (``pair_interaction.wall_impulse = True``)."""
 
     cfg = Config.from_toml("configs/cylinders.toml")
     assert cfg.system.rod_radius > 0, "cylinders config should have a finite radius"
@@ -178,4 +180,5 @@ def test_passthrough_config_loads_cleanly() -> None:
         "cylinders.toml must set pair_potential.strength = 0 (pass-through mode); "
         f"got {cfg.pair.strength}"
     )
-    assert cfg.wall.strength > 0, "walls should still bounce the cylinders"
+    walls_bounce = cfg.wall.strength > 0 or cfg.pair_interaction.wall_impulse
+    assert walls_bounce, "walls should still bounce the cylinders (soft or impulsive)"

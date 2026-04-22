@@ -73,12 +73,19 @@ class PairInteractionConfig:
     ``model = HARD_CONTACT``: the capsule non-penetration constraint is
         enforced via impulse at each step. Uses ``contact_radius`` and
         ``restitution``; the ``PairPotentialConfig`` block is ignored.
+
+    ``wall_impulse`` forces the wall kernel to use impulsive (rigid) collisions
+    even when ``model != HARD_CONTACT``. The soft wall potential is still
+    evaluated only when ``wall_impulse`` is False AND ``model != HARD_CONTACT``.
+    Turning this on in the pass-through (NONE) mode gives clean rigid wall
+    bounces so the apparent dynamics match the HARD_CONTACT demo.
     """
 
     model: InteractionModel = InteractionModel.SOFT_REPULSION
     contact_radius: float | None = None
     restitution: float = 0.8
     wall_restitution: float = 0.8
+    wall_impulse: bool = False
 
 
 @dataclass(slots=True)
@@ -93,6 +100,7 @@ class DerivedInteraction:
     contact_radius: float
     restitution: float
     wall_restitution: float
+    wall_impulse: bool
 
 
 @dataclass(slots=True)
@@ -247,6 +255,7 @@ class Config:
             contact_radius=float(contact_radius),
             restitution=float(self.pair_interaction.restitution),
             wall_restitution=float(self.pair_interaction.wall_restitution),
+            wall_impulse=bool(self.pair_interaction.wall_impulse),
         )
 
     def validate(self) -> None:
