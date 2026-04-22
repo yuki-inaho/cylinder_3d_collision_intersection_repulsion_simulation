@@ -43,9 +43,13 @@ exponent = 8.0
 softening = 0.025
 
 [dynamics]
-dt = 0.004
-linear_damping = 0.04
-angular_damping = 0.04
+# Matches the hard-contact config's time resolution so the two demos look
+# comparably paced when rendered to GIF. The pass-through mode has no
+# penetration budget to worry about, so dt could be larger; we keep it at 0.003
+# for consistency with the rigid-body demo.
+dt = 0.003
+linear_damping = 0.01
+angular_damping = 0.01
 max_linear_speed = 20.0
 max_angular_speed = 30.0
 
@@ -54,9 +58,13 @@ seed = 13
 clearance = 0.25
 min_segment_distance = 0.0
 max_sampling_attempts = 20000
-initial_force_scale = 3.0
-initial_torque_scale = 1.2
-kick_duration = 0.08
+# v(0)     = initial_force_scale  * kick_duration / mass
+# omega(0) = initial_torque_scale * kick_duration / inertia
+# These roughly mirror cylinders_hard.toml so the two modes move at similar
+# speeds in the README GIFs. Halve everything if you want a calmer scene.
+initial_force_scale = 15.0
+initial_torque_scale = 3.0
+kick_duration = 0.1
 
 [render]
 backend = "pyvista"
